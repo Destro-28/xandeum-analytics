@@ -1,9 +1,9 @@
 export const runtime = "nodejs";
 
-import { scoreNode } from "@/app/lib/confidenceScorer";
 import { NextResponse } from "next/server";
 import { callPRPC } from "@/app/lib/prpc";
 import { normalizeGossip } from "@/app/lib/gossipNormalizer";
+import { scoreNode } from "@/app/lib/confidenceScorer";
 
 const ENDPOINTS = [
   "http://173.212.220.65:6000/rpc",
@@ -12,10 +12,20 @@ const ENDPOINTS = [
   "http://192.190.136.37:6000/rpc",
 ];
 
-
 export async function GET() {
-  const results = [];
+  const results: {
+    endpoint: string;
+    ok: boolean;
+    pods?: {
+      address: string;
+      pubkey: string | null;
+      version: string;
+      last_seen_timestamp: number;
+    }[];
+    error?: string;
+  }[] = [];
 
+  // Fetch gossip from endpoints
   for (const endpoint of ENDPOINTS) {
     try {
       const gossip = await callPRPC(endpoint, "get-pods");
@@ -23,7 +33,6 @@ export async function GET() {
       results.push({
         endpoint,
         ok: true,
-        total_count: gossip.total_count,
         pods: gossip.pods,
       });
     } catch (error: unknown) {
@@ -34,36 +43,76 @@ export async function GET() {
       });
     }
   }
-const normalized = normalizeGossip(
-  results
-    .filter((r) => r.ok)
-    .map((r) => ({
-      endpoint: r.endpoint,
-      pods: r.pods,
-    }))
-);
-const totalEndpoints = ENDPOINTS.length;
 
-const scoredNodes = normalized.map((node) =>
-  scoreNode(node, totalEndpoints)
-);
-return NextResponse.json({
-  timestamp: Date.now(),
-  total_unique_nodes: scoredNodes.length,
+  // Normalize successful gossip responses
+  const normalized = normalizeGossip(
+    results
+      .filter((r) => r.ok && r.pods)
+      .map((r) => ({
+        endpoint: r.endpoint,
+        pods: r.pods!,
+      }))
+  );
 
-  summary: {
-    high: scoredNodes.filter(
-      (n) => n.confidence_tier === "high"
-    ).length,
-    medium: scoredNodes.filter(
-      (n) => n.confidence_tier === "medium"
-    ).length,
-    low: scoredNodes.filter(
-      (n) => n.confidence_tier === "low"
-    ).length,
-  },
+  // Score nodes (confidence, status, etc.)
+  const totalEndpoints = ENDPOINTS.length;
+  const scoredNodes = normalized.map((node) =>
+    scoreNode(node, totalEndpoints)
+  );
 
-  nodes: scoredNodes,
-});
+  // Build summary block (snapshot metadata)
+  const now = Math.floor(Date.now() / 1000);
 
+  const summary = {
+    endpoints: {
+      total: ENDPOINTS.length,
+      healthy: results.filter((r) => r.ok).length,
+      unhealthy: results.filter((r) => !r.ok).length,
+    },
+
+    nodes: {
+      total_unique: scoredNodes.length,
+      active: scoredNodes.filter((n) => n.status === "active").length,
+      stale: scoredNodes.filter((n) => n.status === "stale").length,
+    },
+
+    confidence: {
+      average_score:
+        scoredNodes.length === 0
+          ? 0
+          : Math.round(
+              scoredNodes.reduce(
+                (acc, n) => acc + n.confidence_score,
+                0
+              ) / scoredNodes.length
+            ),
+      high: scoredNodes.filter(
+        (n) => n.confidence_tier === "high"
+      ).length,
+      medium: scoredNodes.filter(
+        (n) => n.confidence_tier === "medium"
+      ).length,
+      low: scoredNodes.filter(
+        (n) => n.confidence_tier === "low"
+      ).length,
+    },
+
+    freshness: {
+      newest_seen_sec:
+        scoredNodes.length === 0
+          ? null
+          : Math.min(...scoredNodes.map((n) => now - n.last_seen)),
+      oldest_seen_sec:
+        scoredNodes.length === 0
+          ? null
+          : Math.max(...scoredNodes.map((n) => now - n.last_seen)),
+    },
+  };
+
+  // Final API response
+  return NextResponse.json({
+    timestamp: Date.now(),
+    summary,
+    nodes: scoredNodes,
+  });
 }

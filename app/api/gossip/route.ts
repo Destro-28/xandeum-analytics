@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { callPRPC } from "@/app/lib/prpc";
 import { normalizeGossip } from "@/app/lib/gossipNormalizer";
 import { scoreNode } from "@/app/lib/confidenceScorer";
+import { resolveIP } from "@/app/lib/geoResolver";
+import { extractIP } from "@/app/lib/ipUtils";
 
 const ENDPOINTS = [
   "http://173.212.220.65:6000/rpc",
@@ -25,7 +27,7 @@ export async function GET() {
     error?: string;
   }[] = [];
 
-  // Fetch gossip from endpoints
+  //  Fetch gossip from endpoints
   for (const endpoint of ENDPOINTS) {
     try {
       const gossip = await callPRPC(endpoint, "get-pods");
@@ -44,7 +46,7 @@ export async function GET() {
     }
   }
 
-  // Normalize successful gossip responses
+  //  Normalize successful gossip responses
   const normalized = normalizeGossip(
     results
       .filter((r) => r.ok && r.pods)
@@ -54,13 +56,34 @@ export async function GET() {
       }))
   );
 
-  // Score nodes (confidence, status, etc.)
+  // Score nodes + attach GeoIP
   const totalEndpoints = ENDPOINTS.length;
-  const scoredNodes = normalized.map((node) =>
-    scoreNode(node, totalEndpoints)
-  );
+  const scoredNodes = [];
 
-  // Build summary block (snapshot metadata)
+  for (const node of normalized) {
+    const scored = scoreNode(node, totalEndpoints);
+
+    // Pick first public IPv4 from addresses
+    const ip =
+      scored.addresses
+        .map(extractIP)
+        .find(
+          (ip) =>
+            ip &&
+            !ip.startsWith("127.") &&
+            !ip.startsWith("10.") &&
+            !ip.startsWith("192.168.")
+        ) || null;
+
+    const geo = ip ? await resolveIP(ip) : null;
+
+    scoredNodes.push({
+      ...scored,
+      geo, //  safely attached
+    });
+  }
+
+  // Build summary block
   const now = Math.floor(Date.now() / 1000);
 
   const summary = {

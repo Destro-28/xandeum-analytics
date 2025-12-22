@@ -59,5 +59,7 @@ export function scoreNode(
     status,
     agreement_ratio: Number(agreementRatio.toFixed(2)),
     age_seconds: age,
+    version: node.versions,
+
   };
 }

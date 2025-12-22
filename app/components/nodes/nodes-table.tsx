@@ -4,13 +4,12 @@ import VersionBadge from "./version-badge";
 type Node = {
   pubkey: string | null;
   status: string;
-  version: string;
+  version: string | null;
   confidence_score: number;
   confidence_tier: string;
 };
 
 export default function NodesTable({ nodes }: { nodes: Node[] }) {
-
   return (
     <div className="overflow-hidden rounded-2xl bg-slate-900">
       <table className="w-full border-separate border-spacing-y-2">
@@ -26,6 +25,19 @@ export default function NodesTable({ nodes }: { nodes: Node[] }) {
         </thead>
 
         <tbody>
+          {/* ✅ Empty state */}
+          {nodes.length === 0 && (
+            <tr>
+              <td
+                colSpan={6}
+                className="py-10 text-center text-sm text-slate-400"
+              >
+                No Results
+              </td>
+            </tr>
+          )}
+
+          {/* ✅ Normal rows */}
           {nodes.map((node, i) => (
             <tr
               key={i}
@@ -43,7 +55,6 @@ export default function NodesTable({ nodes }: { nodes: Node[] }) {
                 <StatusBadge status={node.status} />
               </td>
 
-              {/* ✅ Version badge */}
               <td className="px-4 py-3">
                 <VersionBadge version={node.version} />
               </td>

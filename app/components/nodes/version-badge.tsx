@@ -1,11 +1,11 @@
 type Props = {
-  version: string;
+  version: string | null;
 };
 
 export default function VersionBadge({ version }: Props) {
   return (
     <span
-      title={version}
+      title={version || "Unknown"}
       className="
         inline-flex max-w-50
         items-center rounded-full
@@ -17,7 +17,7 @@ export default function VersionBadge({ version }: Props) {
         truncate
       "
     >
-      {version}
+      {version || "—"}
     </span>
   );
 }

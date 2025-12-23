@@ -1,39 +1,83 @@
-type ConfidenceRingProps = {
-  value: number
-}
+"use client";
 
-export function ConfidenceRing({ value }: ConfidenceRingProps) {
-  const radius = 42
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference - (value / 100) * circumference
+import { useEffect, useState } from "react";
+
+type Props = {
+  value: number; // 0–100
+  size?: number;
+  strokeWidth?: number;
+};
+
+export function ConfidenceRing({
+  value,
+  size = 96,
+  strokeWidth = 8,
+}: Props) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let start: number | null = null;
+    const duration = 850; // 🔥 snappy (0.85s)
+
+    const animate = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+
+      // easeOutCubic
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      setProgress(eased * value);
+
+      if (elapsed < duration) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  const offset =
+    circumference - (progress / 100) * circumference;
 
   return (
-    <div className="relative flex h-30 w-30 items-center justify-center">
-      <svg className="absolute h-full w-full -rotate-90">
+    <div className="relative flex items-center justify-center">
+      <svg
+        width={size}
+        height={size}
+        className="-rotate-90"
+      >
+        {/* Background ring */}
         <circle
-          cx="60"
-          cy="60"
+          cx={size / 2}
+          cy={size / 2}
           r={radius}
-          stroke="#e5e7eb"
-          strokeWidth="6"
-          fill="none"
+          stroke="#1E293B"
+          strokeWidth={strokeWidth}
+          fill="transparent"
         />
+
+        {/* Progress ring */}
         <circle
-          cx="60"
-          cy="60"
+          cx={size / 2}
+          cy={size / 2}
           r={radius}
-          stroke="#22c55e"
-          strokeWidth="6"
-          fill="none"
+          stroke="#22C55E"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          strokeLinecap="round"
         />
       </svg>
 
-      <span className="text-[40px] font-bold text-slate-900">
-        {value}
+      {/* Center value */}
+      <span className="absolute text-lg font-semibold text-slate-200">
+        {Math.round(progress)}
       </span>
     </div>
-  )
+  );
 }

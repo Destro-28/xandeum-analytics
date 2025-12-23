@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import NodesToolbar from "./nodes-toolbar";
 import NodesTable from "./nodes-table";
+import NodesGrid from "./nodes-grid";
 
 type Node = {
   pubkey: string | null;
@@ -31,6 +32,9 @@ export default function NodesSection() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [timestamp, setTimestamp] = useState<number | null>(null);
 
+  // 🔁 layout toggle
+  const [layout, setLayout] = useState<"table" | "grid">("table");
+
   // 🔍 search
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -38,7 +42,7 @@ export default function NodesSection() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<string | null>(null);
 
-  // version filters
+  // version filters (nested)
   const [versionNetwork, setVersionNetwork] =
     useState<"mainnet" | "trynet" | null>(null);
   const [versionFilter, setVersionFilter] = useState<string | null>(null);
@@ -46,7 +50,9 @@ export default function NodesSection() {
   /**
    * 🔧 Normalize version into a string
    */
-  const normalizeVersion = (v: string | string[] | undefined | null) => {
+  const normalizeVersion = (
+    v: string | string[] | undefined | null
+  ): string | null => {
     if (!v) return null;
     if (Array.isArray(v)) return v.join(".");
     return v;
@@ -56,30 +62,32 @@ export default function NodesSection() {
     fetch("/api/gossip")
       .then((r) => r.json())
       .then((res) => {
-        const normalizedNodes = res.nodes.map((node: ApiNode) => ({
-          ...node,
-          version: normalizeVersion(node.version),
-        }));
+        const normalizedNodes: Node[] = res.nodes.map(
+          (node: ApiNode) => ({
+            ...node,
+            version: normalizeVersion(node.version),
+          })
+        );
+
         setNodes(normalizedNodes);
         setTimestamp(res.timestamp);
       });
   }, []);
 
   /**
-   * 📦 Build version groups (deduped + safe)
+   * 📦 Build version groups (deduped)
    */
   const availableVersions: VersionGroup = useMemo(() => {
     const mainnet = new Set<string>();
     const trynet = new Set<string>();
 
     for (const node of nodes) {
-      const version = node.version;
-      if (!version) continue;
+      if (!node.version) continue;
 
-      if (version.toLowerCase().includes("trynet")) {
-        trynet.add(version);
+      if (node.version.toLowerCase().includes("trynet")) {
+        trynet.add(node.version);
       } else {
-        mainnet.add(version);
+        mainnet.add(node.version);
       }
     }
 
@@ -89,12 +97,13 @@ export default function NodesSection() {
     };
   }, [nodes]);
 
-  /**
-   * 🔎 Combined search + filters
-   */
+  const handleVersionNetworkChange = (network: "mainnet" | "trynet" | null) => {
+    setVersionNetwork(network);
+    setVersionFilter(null);
+  };
   const filteredNodes = useMemo(() => {
     return nodes.filter((node) => {
-      // search
+      // 🔍 search (pubkey / IP)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
 
@@ -109,16 +118,31 @@ export default function NodesSection() {
         if (!pubkeyMatch && !ipMatch) return false;
       }
 
-      if (statusFilter && node.status !== statusFilter) return false;
-      if (tierFilter && node.confidence_tier !== tierFilter) return false;
+      // status filter
+      if (statusFilter && node.status !== statusFilter) {
+        return false;
+      }
 
+      // confidence tier filter
+      if (tierFilter && node.confidence_tier !== tierFilter) {
+        return false;
+      }
+
+      // version network filter
       if (versionNetwork && node.version) {
-        if (!availableVersions[versionNetwork].includes(node.version)) {
+        if (
+          !availableVersions[versionNetwork].includes(
+            node.version
+          )
+        ) {
           return false;
         }
       }
 
-      if (versionFilter && node.version !== versionFilter) return false;
+      // version filter
+      if (versionFilter && node.version !== versionFilter) {
+        return false;
+      }
 
       return true;
     });
@@ -144,16 +168,19 @@ export default function NodesSection() {
           tierFilter={tierFilter}
           onTierChange={setTierFilter}
           versionNetwork={versionNetwork}
-          onVersionNetworkChange={(network) => {
-            setVersionNetwork(network);
-            setVersionFilter(null);
-          }}
+          onVersionNetworkChange={handleVersionNetworkChange}
           versionFilter={versionFilter}
           onVersionChange={setVersionFilter}
           availableVersions={availableVersions}
+          layout={layout}
+          onLayoutChange={setLayout}
         />
 
-        <NodesTable nodes={filteredNodes} />
+        {layout === "table" ? (
+          <NodesTable nodes={filteredNodes} />
+        ) : (
+          <NodesGrid nodes={filteredNodes} />
+        )}
       </div>
     </section>
   );

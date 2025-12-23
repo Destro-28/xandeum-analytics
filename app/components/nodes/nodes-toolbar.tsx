@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Dispatch, SetStateAction } from "react";
 import {
   Search,
   Filter,
   X,
   Grid2X2,
+  List,
 } from "lucide-react";
 
 type VersionGroup = {
@@ -30,39 +31,39 @@ export default function NodesToolbar({
   versionFilter,
   onVersionChange,
 
+  layout,
+  onLayoutChange,
+
   availableVersions,
 }: {
   timestamp: number | null;
   searchQuery: string;
-  onSearchChange: (v: string) => void;
+  onSearchChange: Dispatch<SetStateAction<string>>;
 
   statusFilter: string | null;
-  onStatusChange: (v: string | null) => void;
+  onStatusChange: Dispatch<SetStateAction<string | null>>;
 
   tierFilter: string | null;
-  onTierChange: (v: string | null) => void;
+  onTierChange: Dispatch<SetStateAction<string | null>>;
 
   versionNetwork: "mainnet" | "trynet" | null;
-  onVersionNetworkChange: (
-    v: "mainnet" | "trynet" | null
-  ) => void;
+  onVersionNetworkChange: (v: "mainnet" | "trynet" | null) => void;
 
   versionFilter: string | null;
-  onVersionChange: (v: string | null) => void;
+  onVersionChange: Dispatch<SetStateAction<string | null>>;
+
+  layout: "table" | "grid";
+  onLayoutChange: Dispatch<SetStateAction<"table" | "grid">>;
 
   availableVersions: VersionGroup;
 }) {
   const [open, setOpen] = useState(false);
 
-  // staged (local) filter state
-  const [tmpStatus, setTmpStatus] =
-    useState(statusFilter);
-  const [tmpTier, setTmpTier] =
-    useState(tierFilter);
-  const [tmpNetwork, setTmpNetwork] =
-    useState(versionNetwork);
-  const [tmpVersion, setTmpVersion] =
-    useState(versionFilter);
+  // staged filter state
+  const [tmpStatus, setTmpStatus] = useState(statusFilter);
+  const [tmpTier, setTmpTier] = useState(tierFilter);
+  const [tmpNetwork, setTmpNetwork] = useState(versionNetwork);
+  const [tmpVersion, setTmpVersion] = useState(versionFilter);
 
   const formattedTime = timestamp
     ? new Date(timestamp)
@@ -86,45 +87,61 @@ export default function NodesToolbar({
   }
 
   return (
-    <div className="mb-6 space-y-3">
-      {/* Last updated */}
-      <div className="text-sm text-slate-400">
-        Last Updated On : {formattedTime}
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-60">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            value={searchQuery}
-            onChange={(e) =>
-              onSearchChange(e.target.value)
-            }
-            placeholder="Search by pubkey or IP…"
-            className="w-full rounded-full bg-slate-800 py-2 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none"
-          />
+    <>
+      <div className="mb-6 space-y-3">
+        {/* Last updated */}
+        <div className="text-sm text-slate-400">
+          Last Updated On : {formattedTime}
         </div>
 
-        {/* Filter button */}
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-full bg-slate-800 p-2 text-slate-200 hover:bg-slate-700"
-        >
-          <Filter size={18} />
-        </button>
+        {/* Toolbar */}
+        <div className="flex items-center gap-3">
+          {/* Search */}
+          <div className="relative flex-1 min-w-60">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={searchQuery}
+              onChange={(e) =>
+                onSearchChange(e.target.value)
+              }
+              placeholder="Search by pubkey or IP…"
+              className="w-full rounded-full bg-slate-800 py-2 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none"
+            />
+          </div>
 
-        {/* Layout toggle (future) */}
-        <button
-          disabled
-          className="rounded-full bg-slate-800 p-2 text-slate-500"
-        >
-          <Grid2X2 size={18} />
-        </button>
+          {/* Filter button */}
+          <button
+            onClick={() => setOpen(true)}
+            className="rounded-full bg-slate-800 p-2 text-slate-200 hover:bg-slate-700"
+            title="Filters"
+          >
+            <Filter size={18} />
+          </button>
+
+          {/* Layout toggle */}
+          <button
+            onClick={() =>
+              onLayoutChange(
+                layout === "table" ? "grid" : "table"
+              )
+            }
+            className="rounded-full bg-slate-800 p-2 text-slate-200 hover:bg-slate-700"
+            title={
+              layout === "table"
+                ? "Switch to grid view"
+                : "Switch to table view"
+            }
+          >
+            {layout === "table" ? (
+              <Grid2X2 size={18} />
+            ) : (
+              <List size={18} />
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Filter panel */}
+      {/* Filter modal */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="relative w-full max-w-3xl rounded-2xl bg-slate-900 p-6 text-slate-100">
@@ -148,25 +165,23 @@ export default function NodesToolbar({
                   Status
                 </div>
                 <div className="flex gap-2">
-                  {["active", "stale"].map(
-                    (s) => (
-                      <button
-                        key={s}
-                        onClick={() =>
-                          setTmpStatus(
-                            tmpStatus === s ? null : s
-                          )
-                        }
-                        className={`rounded-full px-4 py-1 text-sm ${
-                          tmpStatus === s
-                            ? "bg-blue-600 text-white"
-                            : "bg-slate-800 text-slate-300"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    )
-                  )}
+                  {["active", "stale"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() =>
+                        setTmpStatus(
+                          tmpStatus === s ? null : s
+                        )
+                      }
+                      className={`rounded-full px-4 py-1 text-sm ${
+                        tmpStatus === s
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-800 text-slate-300"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -176,25 +191,23 @@ export default function NodesToolbar({
                   Confidence Tier
                 </div>
                 <div className="flex gap-2">
-                  {["high", "medium", "low"].map(
-                    (t) => (
-                      <button
-                        key={t}
-                        onClick={() =>
-                          setTmpTier(
-                            tmpTier === t ? null : t
-                          )
-                        }
-                        className={`rounded-full px-4 py-1 text-sm capitalize ${
-                          tmpTier === t
-                            ? "bg-purple-600 text-white"
-                            : "bg-slate-800 text-slate-300"
-                        }`}
-                      >
-                        {t}
-                      </button>
-                    )
-                  )}
+                  {["high", "medium", "low"].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() =>
+                        setTmpTier(
+                          tmpTier === t ? null : t
+                        )
+                      }
+                      className={`rounded-full px-4 py-1 text-sm capitalize ${
+                        tmpTier === t
+                          ? "bg-purple-600 text-white"
+                          : "bg-slate-800 text-slate-300"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -271,6 +284,6 @@ export default function NodesToolbar({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -2,7 +2,7 @@
 
 import NodeCard from "./node-card";
 
-type Node = {
+type GossipNode = {
   pubkey: string | null;
   status: string;
   version: string | null;
@@ -12,8 +12,10 @@ type Node = {
 
 export default function NodesGrid({
   nodes,
+  onCardClick,
 }: {
-  nodes: Node[];
+  nodes: GossipNode[];
+  onCardClick: (node: GossipNode, index: number) => void;
 }) {
   if (nodes.length === 0) {
     return (
@@ -30,6 +32,7 @@ export default function NodesGrid({
           key={`${node.pubkey}-${i}`}
           node={node}
           index={i}
+          onClick={onCardClick}
         />
       ))}
     </div>

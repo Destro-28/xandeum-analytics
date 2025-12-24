@@ -8,6 +8,12 @@ type Props = {
   strokeWidth?: number;
 };
 
+function getColor(value: number) {
+  if (value < 50) return "#E10404";   // Low
+  if (value < 75) return "#D9D90E";   // Medium
+  return "#22C55E";                   // High
+}
+
 export function ConfidenceRing({
   value,
   size = 96,
@@ -20,7 +26,7 @@ export function ConfidenceRing({
 
   useEffect(() => {
     let start: number | null = null;
-    const duration = 850; // 🔥 snappy (0.85s)
+    const duration = 850; // 0.85s, snappy
 
     const animate = (timestamp: number) => {
       if (!start) start = timestamp;
@@ -42,6 +48,8 @@ export function ConfidenceRing({
 
   const offset =
     circumference - (progress / 100) * circumference;
+
+  const color = getColor(value);
 
   return (
     <div className="relative flex items-center justify-center">
@@ -65,7 +73,7 @@ export function ConfidenceRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#22C55E"
+          stroke={color}
           strokeWidth={strokeWidth}
           fill="transparent"
           strokeLinecap="round"

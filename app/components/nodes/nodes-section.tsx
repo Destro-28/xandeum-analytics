@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import NodesToolbar from "./nodes-toolbar";
 import NodesTable from "./nodes-table";
 import NodesGrid from "./nodes-grid";
+import NodeDetailsModal from "../modals/node-details-modal";
 
-type Node = {
+type GossipNode = {
   pubkey: string | null;
   status: string;
   version: string | null;
@@ -29,11 +30,16 @@ type ApiNode = {
 };
 
 export default function NodesSection() {
-  const [nodes, setNodes] = useState<Node[]>([]);
+  const [nodes, setNodes] = useState<GossipNode[]>([]);
   const [timestamp, setTimestamp] = useState<number | null>(null);
 
   // 🔁 layout toggle
   const [layout, setLayout] = useState<"table" | "grid">("table");
+
+  // 🪟 modal state
+  const [selectedNode, setSelectedNode] = useState<GossipNode | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // 🔍 search
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,15 +47,10 @@ export default function NodesSection() {
   // 🧰 filters
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<string | null>(null);
-
-  // version filters (nested)
   const [versionNetwork, setVersionNetwork] =
     useState<"mainnet" | "trynet" | null>(null);
   const [versionFilter, setVersionFilter] = useState<string | null>(null);
 
-  /**
-   * 🔧 Normalize version into a string
-   */
   const normalizeVersion = (
     v: string | string[] | undefined | null
   ): string | null => {
@@ -62,87 +63,59 @@ export default function NodesSection() {
     fetch("/api/gossip")
       .then((r) => r.json())
       .then((res) => {
-        const normalizedNodes: Node[] = res.nodes.map(
-          (node: ApiNode) => ({
-            ...node,
-            version: normalizeVersion(node.version),
-          })
-        );
+        const normalized: GossipNode[] = res.nodes.map((n: ApiNode) => ({
+          ...n,
+          version: normalizeVersion(n.version),
+        }));
 
-        setNodes(normalizedNodes);
+        setNodes(normalized);
         setTimestamp(res.timestamp);
       });
   }, []);
 
-  /**
-   * 📦 Build version groups (deduped)
-   */
   const availableVersions: VersionGroup = useMemo(() => {
     const mainnet = new Set<string>();
     const trynet = new Set<string>();
 
-    for (const node of nodes) {
-      if (!node.version) continue;
-
-      if (node.version.toLowerCase().includes("trynet")) {
-        trynet.add(node.version);
+    nodes.forEach((n) => {
+      if (!n.version) return;
+      if (n.version.toLowerCase().includes("trynet")) {
+        trynet.add(n.version);
       } else {
-        mainnet.add(node.version);
+        mainnet.add(n.version);
       }
-    }
+    });
 
     return {
-      mainnet: Array.from(mainnet).sort(),
-      trynet: Array.from(trynet).sort(),
+      mainnet: [...mainnet].sort(),
+      trynet: [...trynet].sort(),
     };
   }, [nodes]);
 
-  const handleVersionNetworkChange = (network: "mainnet" | "trynet" | null) => {
-    setVersionNetwork(network);
-    setVersionFilter(null);
-  };
   const filteredNodes = useMemo(() => {
     return nodes.filter((node) => {
-      // 🔍 search (pubkey / IP)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-
-        const pubkeyMatch =
-          node.pubkey?.toLowerCase().includes(q);
-
-        const ipMatch =
-          node.addresses?.some((addr) =>
-            addr.toLowerCase().includes(q)
-          );
-
-        if (!pubkeyMatch && !ipMatch) return false;
-      }
-
-      // status filter
-      if (statusFilter && node.status !== statusFilter) {
-        return false;
-      }
-
-      // confidence tier filter
-      if (tierFilter && node.confidence_tier !== tierFilter) {
-        return false;
-      }
-
-      // version network filter
-      if (versionNetwork && node.version) {
         if (
-          !availableVersions[versionNetwork].includes(
-            node.version
+          !node.pubkey?.toLowerCase().includes(q) &&
+          !node.addresses?.some((a) =>
+            a.toLowerCase().includes(q)
           )
         ) {
           return false;
         }
       }
 
-      // version filter
-      if (versionFilter && node.version !== versionFilter) {
-        return false;
+      if (statusFilter && node.status !== statusFilter) return false;
+      if (tierFilter && node.confidence_tier !== tierFilter) return false;
+
+      if (versionNetwork && node.version) {
+        if (!availableVersions[versionNetwork].includes(node.version)) {
+          return false;
+        }
       }
+
+      if (versionFilter && node.version !== versionFilter) return false;
 
       return true;
     });
@@ -156,6 +129,12 @@ export default function NodesSection() {
     availableVersions,
   ]);
 
+  function openNodeModal(node: GossipNode, index: number) {
+    setSelectedNode(node);
+    setSelectedIndex(index);
+    setModalOpen(true);
+  }
+
   return (
     <section className="mt-8">
       <div className="mx-auto max-w-7xl">
@@ -168,7 +147,10 @@ export default function NodesSection() {
           tierFilter={tierFilter}
           onTierChange={setTierFilter}
           versionNetwork={versionNetwork}
-          onVersionNetworkChange={handleVersionNetworkChange}
+          onVersionNetworkChange={(v) => {
+            setVersionNetwork(v);
+            setVersionFilter(null);
+          }}
           versionFilter={versionFilter}
           onVersionChange={setVersionFilter}
           availableVersions={availableVersions}
@@ -177,11 +159,26 @@ export default function NodesSection() {
         />
 
         {layout === "table" ? (
-          <NodesTable nodes={filteredNodes} />
+          <NodesTable
+            nodes={filteredNodes}
+            onRowClick={openNodeModal}
+          />
         ) : (
-          <NodesGrid nodes={filteredNodes} />
+          <NodesGrid
+            nodes={filteredNodes}
+            onCardClick={openNodeModal}
+          />
         )}
       </div>
+
+      {selectedNode && selectedIndex !== null && (
+        <NodeDetailsModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          node={selectedNode}
+          index={selectedIndex}
+        />
+      )}
     </section>
   );
 }

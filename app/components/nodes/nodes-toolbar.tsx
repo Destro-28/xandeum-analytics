@@ -66,9 +66,7 @@ export default function NodesToolbar({
   const [tmpVersion, setTmpVersion] = useState(versionFilter);
 
   const formattedTime = timestamp
-    ? new Date(timestamp)
-        .toUTCString()
-        .replace("GMT", "UTC")
+    ? new Date(timestamp).toUTCString().replace("GMT", "UTC")
     : "--";
 
   function applyFilters() {
@@ -88,31 +86,44 @@ export default function NodesToolbar({
 
   return (
     <>
+      {/* ─── Toolbar ───────────────────────────── */}
       <div className="mb-6 space-y-3">
-        {/* Last updated */}
         <div className="text-sm text-slate-400">
           Last Updated On : {formattedTime}
         </div>
 
-        {/* Toolbar */}
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="relative flex-1 min-w-60">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={searchQuery}
-              onChange={(e) =>
-                onSearchChange(e.target.value)
-              }
+              onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by pubkey or IP…"
-              className="w-full rounded-full bg-slate-800 py-2 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none"
+              className="
+                w-full rounded-full
+                bg-slate-800
+                py-2 pl-10 pr-4
+                text-sm text-slate-100
+                placeholder:text-slate-400
+                outline-none
+                transition
+                focus:ring-2 focus:ring-slate-600/40
+              "
             />
           </div>
 
-          {/* Filter button */}
+          {/* Filter */}
           <button
             onClick={() => setOpen(true)}
-            className="rounded-full bg-slate-800 p-2 text-slate-200 hover:bg-slate-700"
+            className="
+              rounded-full
+              bg-slate-800 p-2
+              text-slate-200
+              transition
+              hover:bg-slate-700
+              hover:shadow-md
+            "
             title="Filters"
           >
             <Filter size={18} />
@@ -121,11 +132,16 @@ export default function NodesToolbar({
           {/* Layout toggle */}
           <button
             onClick={() =>
-              onLayoutChange(
-                layout === "table" ? "grid" : "table"
-              )
+              onLayoutChange(layout === "table" ? "grid" : "table")
             }
-            className="rounded-full bg-slate-800 p-2 text-slate-200 hover:bg-slate-700"
+            className="
+              rounded-full
+              bg-slate-800 p-2
+              text-slate-200
+              transition
+              hover:bg-slate-700
+              hover:shadow-md
+            "
             title={
               layout === "table"
                 ? "Switch to grid view"
@@ -141,18 +157,31 @@ export default function NodesToolbar({
         </div>
       </div>
 
-      {/* Filter modal */}
+      {/* ─── Filter Modal ───────────────────────── */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="relative w-full max-w-3xl rounded-2xl bg-slate-900 p-6 text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div
+            className="
+              relative w-full max-w-3xl
+              rounded-2xl
+              border border-slate-700/40
+        bg-linear-to-b from-slate-900 to-slate-950
+        p-5 transition
+            "
+          >
             {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
+            <div className="mb-6 flex items-center justify-between">
+              <h1 className="text-lg font-semibold tracking-wide">
                 Filter By
-              </h3>
+              </h1>
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-full p-2 hover:bg-slate-800"
+                className="
+                  rounded-full p-2
+                  transition
+                  hover:bg-red-700/65
+                  hover:text-white
+                "
               >
                 <X />
               </button>
@@ -160,8 +189,8 @@ export default function NodesToolbar({
 
             <div className="space-y-6">
               {/* Status */}
-              <div>
-                <div className="mb-2 text-sm font-medium">
+              <section>
+                <div className="mb-2 text-sm font-medium text-slate-300">
                   Status
                 </div>
                 <div className="flex gap-2">
@@ -169,25 +198,27 @@ export default function NodesToolbar({
                     <button
                       key={s}
                       onClick={() =>
-                        setTmpStatus(
-                          tmpStatus === s ? null : s
-                        )
+                        setTmpStatus(tmpStatus === s ? null : s)
                       }
-                      className={`rounded-full px-4 py-1 text-sm ${
-                        tmpStatus === s
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-800 text-slate-300"
-                      }`}
+                      className={`
+                        rounded-full px-4 py-1 text-sm capitalize
+                        transition
+                        ${
+                          tmpStatus === s
+                            ? "bg-green-600 text-black"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }
+                      `}
                     >
                       {s}
                     </button>
                   ))}
                 </div>
-              </div>
+              </section>
 
-              {/* Confidence */}
-              <div>
-                <div className="mb-2 text-sm font-medium">
+              {/* Confidence Tier */}
+              <section>
+                <div className="mb-2 text-sm font-medium text-slate-300">
                   Confidence Tier
                 </div>
                 <div className="flex gap-2">
@@ -195,88 +226,104 @@ export default function NodesToolbar({
                     <button
                       key={t}
                       onClick={() =>
-                        setTmpTier(
-                          tmpTier === t ? null : t
-                        )
+                        setTmpTier(tmpTier === t ? null : t)
                       }
-                      className={`rounded-full px-4 py-1 text-sm capitalize ${
-                        tmpTier === t
-                          ? "bg-purple-600 text-white"
-                          : "bg-slate-800 text-slate-300"
-                      }`}
+                      className={`
+                        rounded-full px-4 py-1 text-sm capitalize
+                        transition
+                        ${
+                          tmpTier === t
+                            ? "bg-green-600 text-black"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }
+                      `}
                     >
                       {t}
                     </button>
                   ))}
                 </div>
-              </div>
+              </section>
 
               {/* Version */}
-              <div>
-                <div className="mb-2 text-sm font-medium">
+              <section>
+                <div className="mb-2 text-sm font-medium text-slate-300">
                   Version
                 </div>
 
                 <div className="mb-3 flex gap-2">
-                  {(["mainnet", "trynet"] as const).map(
-                    (net) => (
-                      <button
-                        key={net}
-                        onClick={() => {
-                          setTmpNetwork(
-                            tmpNetwork === net ? null : net
-                          );
-                          setTmpVersion(null);
-                        }}
-                        className={`rounded-full px-4 py-1 text-sm capitalize ${
+                  {(["mainnet", "trynet"] as const).map((net) => (
+                    <button
+                      key={net}
+                      onClick={() => {
+                        setTmpNetwork(tmpNetwork === net ? null : net);
+                        setTmpVersion(null);
+                      }}
+                      className={`
+                        rounded-full px-4 py-1 text-sm capitalize
+                        transition
+                        ${
                           tmpNetwork === net
-                            ? "bg-slate-600 text-white"
-                            : "bg-slate-800 text-slate-300"
-                        }`}
-                      >
-                        {net}
-                      </button>
-                    )
-                  )}
+                            ? "bg-green-600 text-black"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }
+                      `}
+                    >
+                      {net}
+                    </button>
+                  ))}
                 </div>
 
                 {tmpNetwork && (
                   <div className="flex flex-wrap gap-2">
-                    {availableVersions[tmpNetwork].map(
-                      (v) => (
-                        <button
-                          key={v}
-                          onClick={() =>
-                            setTmpVersion(
-                              tmpVersion === v ? null : v
-                            )
-                          }
-                          className={`rounded-full px-3 py-1 text-xs ${
+                    {availableVersions[tmpNetwork].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() =>
+                          setTmpVersion(tmpVersion === v ? null : v)
+                        }
+                        className={`
+                          rounded-full px-3 py-1 text-xs
+                          transition
+                          ${
                             tmpVersion === v
-                              ? "bg-slate-500 text-white"
-                              : "bg-slate-800 text-slate-300"
-                          }`}
-                        >
-                          {v}
-                        </button>
-                      )
-                    )}
+                              ? "bg-green-600 text-black"
+                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          }
+                        `}
+                      >
+                        {v}
+                      </button>
+                    ))}
                   </div>
                 )}
-              </div>
+              </section>
             </div>
 
             {/* Footer */}
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-8 flex justify-end gap-3">
               <button
                 onClick={clearFilters}
-                className="rounded-full border border-slate-500 px-5 py-1"
+                className="
+                  rounded-full
+                  border border-slate-600
+                  px-6 py-1.5
+                  text-sm
+                  transition
+                  hover:bg-slate-800
+                "
               >
                 Clear
               </button>
               <button
                 onClick={applyFilters}
-                className="rounded-full bg-blue-600 px-5 py-1 text-white"
+                className="
+                  rounded-full
+                  border border-slate-600
+                  px-6 py-1.5
+                  text-sm
+                  transition
+                  hover:bg-slate-800
+                "
               >
                 Apply
               </button>

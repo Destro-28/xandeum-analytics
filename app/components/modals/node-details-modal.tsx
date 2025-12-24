@@ -51,7 +51,7 @@ export default function NodeDetailsModal({
       <div
         className="
           relative
-          h-120
+          h-125
           w-155
           rounded-2xl
           overflow-hidden
@@ -68,16 +68,16 @@ export default function NodeDetailsModal({
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 z-20 rounded-full bg-red-700/65 p-2 text-white hover:bg-red-500/85"
+          className="absolute right-2 top-2 z-20 rounded-full bg-red-700/65 p-2 text-white hover:bg-red-500/85"
         >
           <X size={16} />
         </button>
 
         {/* Content */}
-        <div className="relative z-10 h-full p-8 text-white">
+        <div className="relative top-4 z-10 h-full p-8 text-white">
           {/* ─── Header ─── */}
           <div className="flex items-start justify-between">
-            <div className="text-3xl font-bold">
+            <div className="text-4xl font-bold">
               #{index + 1}
             </div>
 

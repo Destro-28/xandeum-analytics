@@ -1,5 +1,9 @@
 // app/components/summary/summary-section.tsx
 
+import { headers } from "next/headers";
+import { StatCard } from "./stat-card";
+import { ConfidenceRing } from "./confidence-ring";
+
 interface Summary {
   nodes: {
     total_unique: number;
@@ -16,10 +20,32 @@ interface Summary {
   };
 }
 
-import { StatCard } from "./stat-card";
-import { ConfidenceRing } from "./confidence-ring";
+async function getSummary(): Promise<Summary> {
+  const headersList = await headers();
+  const host = headersList.get("host");
 
-export function SummarySection({ summary }: { summary: Summary }) {
+  if (!host) {
+    throw new Error("Missing host header");
+  }
+
+  const protocol =
+    process.env.NODE_ENV === "development" ? "http" : "https";
+
+  const res = await fetch(`${protocol}://${host}/api/gossip`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch summary data");
+  }
+
+  const data = await res.json();
+  return data.summary;
+}
+
+export async function SummarySection() {
+  const summary = await getSummary();
+
   return (
     <section className="mx-auto mb-24 mt-10 max-w-7xl px-6">
       <div className="flex items-start justify-between">
@@ -59,7 +85,9 @@ export function SummarySection({ summary }: { summary: Summary }) {
           <StatCard
             title="Avg Confidence Score"
             value={
-              <ConfidenceRing value={summary.confidence.average_score} />
+              <ConfidenceRing
+                value={summary.confidence.average_score}
+              />
             }
           />
         </div>

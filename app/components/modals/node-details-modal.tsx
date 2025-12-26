@@ -106,7 +106,7 @@ export default function NodeDetailsModal({
         onMouseDown={(e) => e.stopPropagation()} // prevent inner clicks
         className="
           relative
-          h-150
+          h-130
           w-155
           rounded-2xl
           border border-slate-700/40

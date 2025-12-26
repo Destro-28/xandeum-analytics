@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Dispatch, SetStateAction } from "react";
+import { useState, useEffect, useCallback, Dispatch, SetStateAction } from "react";
 import {
   Search,
   Filter,
@@ -69,24 +69,46 @@ export default function NodesToolbar({
     ? new Date(timestamp).toUTCString().replace("GMT", "UTC")
     : "--";
 
-  function applyFilters() {
+  const applyFilters = useCallback(() => {
     onStatusChange(tmpStatus);
     onTierChange(tmpTier);
     onVersionNetworkChange(tmpNetwork);
     onVersionChange(tmpVersion);
     setOpen(false);
-  }
+  }, [tmpStatus, tmpTier, tmpNetwork, tmpVersion, onStatusChange, onTierChange, onVersionNetworkChange, onVersionChange]);
 
-  function clearFilters() {
+  const clearFilters = useCallback(() => {
     setTmpStatus(null);
     setTmpTier(null);
     setTmpNetwork(null);
     setTmpVersion(null);
-  }
+  }, []);
+
+  
+
+  // ⌨ Keyboard handling (Enter / Escape)
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        applyFilters();
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, applyFilters]);
 
   return (
     <>
-      {/* ─── Toolbar ───────────────────────────── */}
+      {/* ─── Toolbar ─── */}
       <div className="mb-6 space-y-3">
         <div className="text-sm text-slate-400">
           Last Updated On : {formattedTime}
@@ -132,7 +154,9 @@ export default function NodesToolbar({
           {/* Layout toggle */}
           <button
             onClick={() =>
-              onLayoutChange(layout === "table" ? "grid" : "table")
+              onLayoutChange(
+                layout === "table" ? "grid" : "table"
+              )
             }
             className="
               rounded-full
@@ -162,11 +186,11 @@ export default function NodesToolbar({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div
             className="
-              relative w-full max-w-3xl
+              absolute w-full max-w-2xl
               rounded-2xl
               border border-slate-700/40
-        bg-linear-to-b from-slate-900 to-slate-950
-        p-5 transition
+              bg-linear-to-b from-slate-900 to-slate-950
+              p-5
             "
           >
             {/* Header */}

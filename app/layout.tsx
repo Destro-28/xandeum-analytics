@@ -1,3 +1,4 @@
+// app/layout.tsx
 import "./globals.css";
 import { Navbar } from "./components/navbar";
 
@@ -8,9 +9,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-slate-100 antialiased">
+      <body className="text-slate-100 antialiased">
         <Navbar />
-        <main className="pt-20">{children}</main>
+        <main className="pt-20 relative z-10">{children}</main>
       </body>
     </html>
   );

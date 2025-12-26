@@ -1,22 +1,29 @@
-import { StatCard } from "./stat-card"
-import { ConfidenceRing } from "./confidence-ring"
+// app/components/summary/summary-section.tsx
 
-async function getSummary() {
-  const res = await fetch("http://localhost:3000/api/gossip", {
-    cache: "no-store",
-  })
-  return res.json()
+interface Summary {
+  nodes: {
+    total_unique: number;
+    active: number;
+    stale: number;
+  };
+  endpoints: {
+    total: number;
+    healthy: number;
+    unhealthy: number;
+  };
+  confidence: {
+    average_score: number;
+  };
 }
 
-export async function SummarySection() {
-  const data = await getSummary()
-  const summary = data.summary
+import { StatCard } from "./stat-card";
+import { ConfidenceRing } from "./confidence-ring";
 
+export function SummarySection({ summary }: { summary: Summary }) {
   return (
-    <section className="mt-16">
-      <div className="mx-auto flex max-w-7xl items-start justify-between">
-        {/* LEFT: Heading */}
-        <h1 className="max-w-130 text-[58px] font-bold leading-tight text-white">
+    <section className="mx-auto mb-24 mt-10 max-w-7xl px-6">
+      <div className="flex items-start justify-between">
+        <h1 className="text-[58px] font-bold leading-tight text-white">
           Xandeum pNodes
           <br />
           Analytics
@@ -24,7 +31,6 @@ export async function SummarySection() {
           Dashboard
         </h1>
 
-        {/* RIGHT: Cards */}
         <div className="flex gap-4.5">
           <StatCard
             title="Total pNodes"
@@ -53,13 +59,11 @@ export async function SummarySection() {
           <StatCard
             title="Avg Confidence Score"
             value={
-              <ConfidenceRing
-                value={summary.confidence.average_score}
-              />
+              <ConfidenceRing value={summary.confidence.average_score} />
             }
           />
         </div>
       </div>
     </section>
-  )
+  );
 }
